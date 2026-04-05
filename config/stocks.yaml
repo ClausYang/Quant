@@ -1,0 +1,114 @@
+# Stock Lists Configuration
+
+# User's current portfolio
+portfolio:
+  us:
+    - { code: "MU", name: "美光科技" }
+    - { code: "CRDO", name: "Credo" }
+    - { code: "HOOD", name: "Robinhood" }
+    - { code: "NBIS", name: "Nebius" }
+    - { code: "TSM", name: "台积电" }
+
+  hk:
+    - { code: "06160", name: "百济神州" }
+    - { code: "09988", name: "阿里巴巴-W" }
+    - { code: "03690", name: "美团-W" }
+    - { code: "09992", name: "泡泡玛特" }
+    - { code: "03888", name: "金山软件" }
+    - { code: "03918", name: "金界控股" }
+    - { code: "02460", name: "华润饮料" }
+    - { code: "00883", name: "中国海洋石油" }
+    - { code: "02367", name: "巨子生物" }
+    - { code: "09688", name: "再鼎医药" }
+    - { code: "06186", name: "中国飞鹤" }
+    - { code: "00839", name: "中教控股" }
+    - { code: "00696", name: "中国民航信息" }
+
+  a:
+    - { code: "600759", name: "洲际油气" }
+    - { code: "603929", name: "亚翔集成" }
+    - { code: "000657", name: "中钨高新" }
+    - { code: "600941", name: "中国移动" }
+    - { code: "000858", name: "五粮液" }
+    - { code: "600309", name: "万华化学" }
+    - { code: "000426", name: "兴业银锡" }
+    - { code: "600096", name: "云天化" }
+    - { code: "601899", name: "紫金矿业" }
+    - { code: "000603", name: "盛达资源" }
+    - { code: "600105", name: "永鼎股份" }
+    - { code: "603969", name: "银龙股份" }
+    - { code: "600732", name: "爱旭股份" }
+    - { code: "000089", name: "深圳机场" }
+
+  etf:
+    - { code: "513100", name: "纳指ETF" }
+    - { code: "513500", name: "标普500ETF" }
+    - { code: "513130", name: "恒生科技ETF" }
+    - { code: "513050", name: "中概互联网ETF" }
+    - { code: "513980", name: "港股通科技ETF" }
+    - { code: "512690", name: "酒ETF" }
+    - { code: "159892", name: "恒生医药ETF" }
+    - { code: "562960", name: "绿色电力ETF" }
+
+# Hot stocks watchlist
+watchlist:
+  us:
+    - { code: "NVDA", name: "英伟达" }
+    - { code: "AAPL", name: "苹果" }
+    - { code: "MSFT", name: "微软" }
+    - { code: "GOOGL", name: "谷歌" }
+    - { code: "AMZN", name: "亚马逊" }
+    - { code: "META", name: "Meta" }
+    - { code: "TSLA", name: "特斯拉" }
+    - { code: "AMD", name: "AMD" }
+    - { code: "AVGO", name: "博通" }
+    - { code: "PLTR", name: "Palantir" }
+    - { code: "SMCI", name: "超微电脑" }
+    - { code: "COIN", name: "Coinbase" }
+    - { code: "MSTR", name: "MicroStrategy" }
+    - { code: "ARM", name: "ARM" }
+    - { code: "SNOW", name: "Snowflake" }
+
+  hk:
+    - { code: "00700", name: "腾讯控股" }
+    - { code: "01810", name: "小米集团-W" }
+    - { code: "01211", name: "比亚迪股份" }
+    - { code: "00981", name: "中芯国际" }
+    - { code: "02015", name: "理想汽车-W" }
+    - { code: "09868", name: "小鹏汽车-W" }
+    - { code: "09618", name: "京东集团-SW" }
+    - { code: "01024", name: "快手-W" }
+    - { code: "03690", name: "美团-W" }
+    - { code: "09888", name: "百度集团-SW" }
+
+  a:
+    - { code: "300750", name: "宁德时代" }
+    - { code: "002594", name: "比亚迪" }
+    - { code: "600519", name: "贵州茅台" }
+    - { code: "000725", name: "京东方A" }
+    - { code: "688981", name: "中芯国际" }
+    - { code: "603259", name: "药明康德" }
+    - { code: "002371", name: "北方华创" }
+    - { code: "688036", name: "传音控股" }
+    - { code: "601127", name: "赛力斯" }
+    - { code: "002475", name: "立讯精密" }
+
+# Manual sector overrides for stocks where API data is missing
+sector_overrides:
+  "06160": "医药/生物科技"
+  "09992": "消费/潮玩"
+  "03918": "博彩/酒店"
+  "02460": "消费/饮料"
+  "02367": "医药/美妆"
+  "09688": "医药/生物科技"
+  "06186": "消费/乳制品"
+  "00839": "教育"
+  "00696": "科技/航空信息"
+  "513100": "ETF/美股科技"
+  "513500": "ETF/美股大盘"
+  "513130": "ETF/港股科技"
+  "513050": "ETF/中概互联"
+  "513980": "ETF/港股科技"
+  "512690": "ETF/消费赛道"
+  "159892": "ETF/医药赛道"
+  "562960": "ETF/能源赛道"

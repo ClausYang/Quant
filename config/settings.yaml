@@ -1,0 +1,37 @@
+# Stock Analyzer Settings
+
+indicators:
+  ema_periods: [5, 10, 20, 30, 55, 120, 144, 169, 200]
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+  kdj:
+    n: 9
+    m1: 3
+    m2: 3
+
+scoring:
+  weights:
+    trend: 0.4
+    macd: 0.3
+    kdj: 0.2
+    context: 0.1
+
+analysis:
+  mode: llm           # "llm" or "template"
+  provider: minimax # anthropic | minimax | openai | deepseek | qwen | custom
+  model: MiniMax-M2.7
+  base_url: ""        # only needed for "custom" provider
+  concurrency: 10     # max parallel LLM requests
+
+# Provider model reference:
+#   anthropic: claude-sonnet-4-20250514 / claude-haiku-4-5-20251001
+#   minimax:   MiniMax-Text-01 / abab6.5s-chat
+#   openai:    gpt-4o / gpt-4o-mini
+#   deepseek:  deepseek-chat
+#   qwen:      qwen-plus / qwen-turbo
+
+data:
+  history_days: 400   # days of OHLCV to fetch (need 200+ for EMA200)
+  akshare_delay: 0.4  # seconds between akshare requests

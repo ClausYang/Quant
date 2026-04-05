@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stock-analyzer"
+version = "0.1.0"
+description = "Multi-market stock technical analysis and report generator"
+requires-python = ">=3.10"
+dependencies = [
+    "yfinance>=0.2.30",
+    "akshare>=1.12.0",
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "click>=8.1",
+    "jinja2>=3.1",
+    "anthropic>=0.30",
+    "rich>=13.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-asyncio>=0.21"]
+
+[project.scripts]
+stock-analyze = "stock_analyzer.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
