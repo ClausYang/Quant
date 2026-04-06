@@ -8,8 +8,9 @@ version = "0.1.0"
 description = "Multi-market stock technical analysis and report generator"
 requires-python = ">=3.10"
 dependencies = [
-    "yfinance>=0.2.30",
     "akshare>=1.12.0",
+    "baostock>=0.8.8",
+    "longport",
     "pandas>=2.0",
     "numpy>=1.24",
     "pydantic>=2.0",

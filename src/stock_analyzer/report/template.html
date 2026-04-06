@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票分析结果 - {{ report_id }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; }
+
+        .header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 35px 40px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+        .header h1 { color: #1a1a1a; font-size: 32px; margin-bottom: 12px; font-weight: 700; letter-spacing: -0.5px; }
+        .header-info { color: #6c757d; font-size: 15px; line-height: 1.8; }
+
+        .controls {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            border: 1px solid rgba(255,255,255,0.8);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            align-items: flex-start;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 10px; min-width: 180px; }
+        .control-group label { font-weight: 700; color: #2d3748; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .filter-multi-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            max-width: 500px;
+            transition: border-color 0.3s;
+        }
+        .filter-multi-select:hover { border-color: #667eea; }
+
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            font-size: 13px;
+        }
+        .filter-checkbox:hover { background: #edf2f7; transform: translateY(-1px); box-shadow: 0 3px 6px rgba(0,0,0,0.08); }
+        .filter-checkbox input[type="checkbox"] { cursor: pointer; width: 16px; height: 16px; accent-color: #667eea; }
+        .filter-checkbox input[type="checkbox"]:checked + span { font-weight: 700; color: #667eea; }
+        .filter-checkbox:has(input:checked) { background: #e6f2ff; border-color: #667eea; }
+
+        .sort-select {
+            padding: 10px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #ffffff;
+            color: #2d3748;
+            font-weight: 500;
+            transition: all 0.3s;
+            min-width: 180px;
+        }
+        .sort-select:hover { border-color: #667eea; box-shadow: 0 4px 8px rgba(102,126,234,0.15); }
+        .sort-select:focus { outline: none; border-color: #667eea; }
+
+        .stats { display: flex; gap: 12px; margin-left: auto; align-items: center; }
+        .stat-button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: default;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 25px;
+        }
+        @media (max-width: 900px) { .cards-container { grid-template-columns: 1fr; } }
+
+        .card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255,255,255,0.8);
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.4s;
+        }
+        .card:hover::before { transform: scaleX(1); }
+        .card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 16px 40px rgba(0,0,0,0.2); }
+        .card.hidden { display: none; }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .card-title { flex: 1; }
+        .card-title h3 { color: #1a1a1a; font-size: 20px; margin-bottom: 8px; font-weight: 700; letter-spacing: -0.3px; }
+        .stock-code { color: #6c757d; font-size: 14px; font-weight: 500; background: #f7fafc; padding: 4px 10px; border-radius: 6px; display: inline-block; }
+
+        .score-badge {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(246,211,101,0.4);
+        }
+
+        .card-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            padding: 10px 12px;
+            background: #f7fafc;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+        .info-item:hover { background: #edf2f7; transform: translateY(-2px); }
+        .info-label { font-size: 11px; color: #718096; margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-value { font-size: 15px; color: #2d3748; font-weight: 600; }
+        .info-value.positive { color: #10b981; font-weight: 700; }
+        .info-value.negative { color: #ef4444; font-weight: 700; }
+
+        .action-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; }
+        .action-badge.long { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); color: #1e40af; box-shadow: 0 2px 8px rgba(30,64,175,0.2); }
+        .action-badge.hold { background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); color: #4b5563; box-shadow: 0 2px 8px rgba(75,85,99,0.2); }
+
+        .card-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+        .card-section-title { font-size: 12px; font-weight: 700; color: #2d3748; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-section-content { font-size: 14px; color: #4a5568; line-height: 1.7; background: #f7fafc; padding: 10px 12px; border-radius: 8px; }
+
+        .no-results {
+            display: none;
+            text-align: center;
+            padding: 80px 20px;
+            color: #718096;
+            font-size: 18px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>股票技术分析报告</h1>
+        <div class="header-info">
+            <div>生成时间：{{ generated_time }}</div>
+            <div>共 {{ total_count }} 只标的</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>排序方式</label>
+            <select class="sort-select" id="sortSelect">
+                <option value="score-desc">评分（高到低）</option>
+                <option value="score-asc">评分（低到高）</option>
+                <option value="name-asc">股票名称（A-Z）</option>
+                <option value="name-desc">股票名称（Z-A）</option>
+                <option value="price-desc">当前股价（高到低）</option>
+                <option value="price-asc">当前股价（低到高）</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>评分筛选</label>
+            <div class="filter-multi-select" id="scoreFilter">
+                {% for s in distinct_scores %}
+                <label class="filter-checkbox">
+                    <input type="checkbox" value="{{ s }}" checked>
+                    <span>{{ s }} 分</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>交易动作筛选</label>
+            <div class="filter-multi-select" id="actionFilter">
+                {% for a in distinct_actions %}
+                <label class="filter-checkbox">
+                    <input type="checkbox" value="{{ a }}" checked>
+                    <span>{{ a }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if distinct_markets | length > 1 %}
+        <div class="control-group">
+            <label>市场筛选</label>
+            <div class="filter-multi-select" id="marketFilter">
+                {% for m in distinct_markets %}
+                <label class="filter-checkbox">
+                    <input type="checkbox" value="{{ m }}" checked>
+                    <span>{{ m }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="stats">
+            <div class="stat-button">总计：<span id="totalCount">{{ total_count }}</span></div>
+            <div class="stat-button">显示：<span id="displayCount">{{ total_count }}</span></div>
+        </div>
+    </div>
+
+    <div class="cards-container" id="cardsContainer">
+        {% for s in stocks %}
+        <div class="card"
+             data-score="{{ s.score }}"
+             data-action="{{ s.action }}"
+             data-market="{{ s.market }}"
+             data-name="{{ s.name | lower }}"
+             data-price="{{ s.price | replace(',','') }}">
+
+            <div class="card-header">
+                <div class="card-title">
+                    <h3>{{ s.name }}</h3>
+                    <div class="stock-code">{{ s.code }}</div>
+                </div>
+                <div class="score-badge">{{ s.score_display }}</div>
+            </div>
+
+            <div class="card-info">
+                <div class="info-item">
+                    <div class="info-label">交易动作</div>
+                    <div class="info-value"><span class="action-badge {{ s.action_css }}">{{ s.action }}</span></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">所属板块</div>
+                    <div class="info-value">{{ s.sector if s.sector and s.sector != 'N/A' else '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">当前价格</div>
+                    <div class="info-value">{{ s.price }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">涨跌幅</div>
+                    <div class="info-value"><span class="info-value {{ s.change_css }}">{{ s.change_pct }}</span></div>
+                </div>
+                {% if s.market_cap and s.market_cap != 'N/A' %}
+                <div class="info-item">
+                    <div class="info-label">市值</div>
+                    <div class="info-value">{{ s.market_cap }}</div>
+                </div>
+                {% endif %}
+                <div class="info-item">
+                    <div class="info-label">市场</div>
+                    <div class="info-value">{{ s.market }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">加仓价格</div>
+                    <div class="info-value">{{ s.add_price if s.add_price else '不适用' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">减仓价格</div>
+                    <div class="info-value">{{ s.reduce_price if s.reduce_price else '不适用' }}</div>
+                </div>
+            </div>
+
+            {% if s.trend_structure %}
+            <div class="card-section">
+                <div class="card-section-title">趋势结构</div>
+                <div class="card-section-content">{{ s.trend_structure }}</div>
+            </div>
+            {% endif %}
+            {% if s.macd_status %}
+            <div class="card-section">
+                <div class="card-section-title">MACD状态</div>
+                <div class="card-section-content">{{ s.macd_status }}</div>
+            </div>
+            {% endif %}
+            {% if s.kdj_status %}
+            <div class="card-section">
+                <div class="card-section-title">KDJ状态</div>
+                <div class="card-section-content">{{ s.kdj_status }}</div>
+            </div>
+            {% endif %}
+            {% if s.analysis_reason %}
+            <div class="card-section">
+                <div class="card-section-title">分析原因</div>
+                <div class="card-section-content">{{ s.analysis_reason }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="no-results" id="noResults">没有符合条件的股票</div>
+
+</div>
+
+<script>
+    const cards = Array.from(document.querySelectorAll('.card'));
+
+    function filterAndSort() {
+        const selectedScores  = Array.from(document.querySelectorAll('#scoreFilter input:checked')).map(cb => cb.value);
+        const selectedActions = Array.from(document.querySelectorAll('#actionFilter input:checked')).map(cb => cb.value);
+        const marketFilter    = document.getElementById('marketFilter');
+        const selectedMarkets = marketFilter
+            ? Array.from(marketFilter.querySelectorAll('input:checked')).map(cb => cb.value)
+            : [];
+        const sortBy = document.getElementById('sortSelect').value;
+
+        let visible = cards.filter(card => {
+            const matchScore  = !selectedScores.length  || selectedScores.includes(card.dataset.score);
+            const matchAction = !selectedActions.length || selectedActions.includes(card.dataset.action);
+            const matchMarket = !selectedMarkets.length || selectedMarkets.includes(card.dataset.market);
+            return matchScore && matchAction && matchMarket;
+        });
+
+        visible.sort((a, b) => {
+            switch (sortBy) {
+                case 'score-desc':  return parseFloat(b.dataset.score)  - parseFloat(a.dataset.score);
+                case 'score-asc':   return parseFloat(a.dataset.score)  - parseFloat(b.dataset.score);
+                case 'name-asc':    return a.dataset.name.localeCompare(b.dataset.name, 'zh-CN');
+                case 'name-desc':   return b.dataset.name.localeCompare(a.dataset.name, 'zh-CN');
+                case 'price-desc':  return parseFloat(b.dataset.price)  - parseFloat(a.dataset.price);
+                case 'price-asc':   return parseFloat(a.dataset.price)  - parseFloat(b.dataset.price);
+                default: return 0;
+            }
+        });
+
+        cards.forEach(c => c.classList.add('hidden'));
+        const container = document.getElementById('cardsContainer');
+        const noResults = document.getElementById('noResults');
+
+        if (visible.length === 0) {
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+            visible.forEach(c => { c.classList.remove('hidden'); container.appendChild(c); });
+        }
+        document.getElementById('displayCount').textContent = visible.length;
+    }
+
+    document.getElementById('sortSelect').addEventListener('change', filterAndSort);
+    document.querySelectorAll('#scoreFilter input, #actionFilter input').forEach(cb => cb.addEventListener('change', filterAndSort));
+    const mf = document.getElementById('marketFilter');
+    if (mf) mf.querySelectorAll('input').forEach(cb => cb.addEventListener('change', filterAndSort));
+</script>
+</body>
+</html>

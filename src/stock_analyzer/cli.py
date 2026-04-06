@@ -33,6 +33,34 @@ MARKET_CHOICES = ["us", "hk", "a", "etf", "all"]
 MARKET_MAP = {"us": Market.US, "hk": Market.HK, "a": Market.A, "etf": Market.ETF}
 
 
+def _lookup_stock_name(code: str, market: Market) -> str:
+    """Try to resolve stock name from code via data provider."""
+    try:
+        if market == Market.A:
+            import baostock as bs
+            from stock_analyzer.data.a_fetcher import _to_bs_code
+            bs.login()
+            rs = bs.query_stock_basic(code=_to_bs_code(code))
+            name = code
+            if rs.error_code == "0" and rs.next():
+                name = rs.get_row_data()[1] or code
+            bs.logout()
+            return name
+        if market == Market.HK:
+            import yfinance as yf
+            ticker = yf.Ticker(f"{code.zfill(5)}.HK")
+            info = ticker.info
+            return info.get("longName") or info.get("shortName") or code
+        if market == Market.US:
+            import yfinance as yf
+            ticker = yf.Ticker(code)
+            info = ticker.info
+            return info.get("shortName") or code
+    except Exception:
+        pass
+    return code
+
+
 def setup_logging(verbose: bool = False) -> None:
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
@@ -56,6 +84,8 @@ def cli():
     help="Market to analyze (us/hk/a/etf/all).",
 )
 @click.option("--portfolio-only", is_flag=True, help="Only analyze portfolio stocks.")
+@click.option("--code", "-c", default=None, help="Single stock code to analyze (e.g. 600519). Requires --market.")
+@click.option("--name", "-n", default=None, help="Stock name for --code (optional, defaults to code).")
 @click.option(
     "--mode",
     type=click.Choice(["llm", "template"], case_sensitive=False),
@@ -63,7 +93,7 @@ def cli():
     help="Analysis text generation mode. Overrides config.",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose logging.")
-def run(market: str, portfolio_only: bool, mode: str | None, verbose: bool):
+def run(market: str, portfolio_only: bool, code: str | None, name: str | None, mode: str | None, verbose: bool):
     """Run the full analysis pipeline and generate HTML reports."""
     setup_logging(verbose)
     logger = logging.getLogger(__name__)
@@ -81,8 +111,12 @@ def run(market: str, portfolio_only: bool, mode: str | None, verbose: bool):
     stocks_by_market: dict[Market, list[StockConfig]] = defaultdict(list)
     for mkt in markets:
         mkt_key = {Market.US: "us", Market.HK: "hk", Market.A: "a", Market.ETF: "etf"}[mkt]
-        configs = settings.get_stocks(mkt_key)
-        if portfolio_only:
+        if code:
+            resolved_name = name or _lookup_stock_name(code, mkt)
+            configs = [StockConfig(code=code, name=resolved_name, market=mkt)]
+        else:
+            configs = settings.get_stocks(mkt_key)
+        if portfolio_only and not code:
             # Filter to portfolio only (exclude watchlist)
             portfolio_codes = set()
             for item in (settings.stocks_config.get("portfolio", {}).get(mkt_key, []) or []):

@@ -1,11 +1,12 @@
-"""Hong Kong stock data fetcher using yfinance."""
+"""Hong Kong stock data fetcher using Tushare Pro."""
 
 from __future__ import annotations
 
 import logging
+import os
+from datetime import datetime, timedelta
 
 import pandas as pd
-import yfinance as yf
 
 from stock_analyzer.data.fetcher import BaseFetcher
 from stock_analyzer.models import Market, StockConfig, StockData
@@ -16,80 +17,77 @@ logger = logging.getLogger(__name__)
 HISTORY_DAYS = 400
 
 
-def hk_code_to_yf(code: str) -> str:
-    """Convert 5-digit HK code to yfinance format: '00883' -> '0883.HK'."""
-    numeric = code.lstrip("0") or "0"
-    # yfinance HK tickers use 4-digit codes
-    return f"{int(numeric):04d}.HK"
+def _to_ts_code(code: str) -> str:
+    """Convert HK code to Tushare format: '00700' -> '00700.HK'."""
+    bare = code.split(".")[0].zfill(5)
+    return f"{bare}.HK"
+
+
+def _get_pro():
+    import tushare as ts
+    token = os.environ.get("TUSHARE_TOKEN", "")
+    if not token:
+        raise RuntimeError("TUSHARE_TOKEN not set")
+    ts.set_token(token)
+    return ts.pro_api()
 
 
 class HKFetcher(BaseFetcher):
-    """Fetch HK stock data via yfinance."""
+    """Fetch HK stock data via Tushare Pro hk_daily."""
 
     def fetch(self, stocks: list[StockConfig]) -> list[StockData]:
         results: list[StockData] = []
-        config_map = {s.code: s for s in stocks}
 
-        yf_symbols = {s.code: hk_code_to_yf(s.code) for s in stocks}
-        symbol_list = list(yf_symbols.values())
+        try:
+            pro = _get_pro()
+        except RuntimeError as e:
+            logger.error(str(e))
+            return results
 
-        logger.info(f"Downloading HK data for {len(symbol_list)} symbols...")
-        raw = yf.download(
-            symbol_list,
-            period=f"{HISTORY_DAYS}d",
-            group_by="ticker",
-            threads=True,
-            progress=False,
-        )
+        end_date = datetime.now().strftime("%Y%m%d")
+        start_date = (datetime.now() - timedelta(days=HISTORY_DAYS)).strftime("%Y%m%d")
 
-        for orig_code, yf_code in yf_symbols.items():
+        for i, cfg in enumerate(stocks):
+            ts_code = _to_ts_code(cfg.code)
+            logger.info(f"  [{i+1}/{len(stocks)}] Fetching {cfg.code} ({cfg.name})...")
+
             try:
-                if len(symbol_list) == 1:
-                    df = raw.copy()
-                else:
-                    df = raw[yf_code].copy()
-
-                df = df.dropna(subset=["Close"])
-                if df.empty:
-                    logger.warning(f"No data for {orig_code} ({yf_code}), skipping")
+                df = pro.hk_daily(ts_code=ts_code, start_date=start_date, end_date=end_date)
+                if df is None or df.empty:
+                    logger.warning(f"  No data for {cfg.code}, skipping")
                     continue
 
-                if isinstance(df.columns, pd.MultiIndex):
-                    df.columns = df.columns.droplevel(1)
-
                 df = df.rename(columns={
-                    "Open": "Open", "High": "High", "Low": "Low",
-                    "Close": "Close", "Volume": "Volume",
+                    "trade_date": "Date",
+                    "open": "Open", "high": "High",
+                    "low": "Low", "close": "Close", "vol": "Volume",
                 })
-                df = df[["Open", "High", "Low", "Close", "Volume"]].copy()
-                df.index = pd.to_datetime(df.index)
+                df["Date"] = pd.to_datetime(df["Date"], format="%Y%m%d")
+                df = df.set_index("Date")[["Open", "High", "Low", "Close", "Volume"]].copy()
                 df = df.sort_index()
 
-                cfg = config_map[orig_code]
-                ticker = yf.Ticker(yf_code)
-                info = ticker.info or {}
-                name = cfg.name or info.get("shortName", orig_code)
-                sector = cfg.sector or info.get("sector", "") or info.get("industry", "")
-                market_cap = info.get("marketCap", 0) or 0
+                if len(df) < 30:
+                    logger.warning(f"  Insufficient data for {cfg.code} ({len(df)} bars), skipping")
+                    continue
+
                 price = float(df["Close"].iloc[-1])
                 prev_close = float(df["Close"].iloc[-2]) if len(df) > 1 else price
                 change_pct = ((price - prev_close) / prev_close * 100) if prev_close else 0
 
+                logger.info(f"    HK${price:.2f} ({change_pct:+.2f}%)")
                 results.append(StockData(
-                    code=orig_code,
-                    name=name,
+                    code=cfg.code,
+                    name=cfg.name,
                     market=Market.HK,
-                    sector=sector,
+                    sector=cfg.sector or "",
                     price=round(price, 2),
                     change_pct=round(change_pct, 2),
-                    market_cap=market_cap,
-                    market_cap_str=format_market_cap(market_cap, Market.HK),
+                    market_cap=0.0,
+                    market_cap_str="",
                     ohlcv=df,
                 ))
-                logger.info(f"  {orig_code} ({name}): HK${price:.2f} ({change_pct:+.2f}%)")
 
             except Exception as e:
-                logger.error(f"Failed to process {orig_code}: {e}")
-                continue
+                logger.error(f"  Failed to process {cfg.code}: {e}")
 
         return results
